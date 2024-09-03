@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        #hp-bar-container {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px; /* 두 배로 넓게 설정 */
+            height: 30px;
+            background-color: #ccc;
+            border: 2px solid #000;
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #hp-bar {
+            width: 100%;
+            height: 100%;
+            background-color: green;
+            transition: width 0.2s;
+            position: relative;
+            transform-origin: right; /* 오른쪽에서 왼쪽으로 줄어들도록 설정 */
+        }
+
+        #hp-bar::before {
+            content: 'BOSS';
+            color: white;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+        }
+
+        #aircraft-hp-bar-container {
+            position: fixed;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px; /* HP바의 너비 */
+            height: 20px;
+            background-color: #ccc;
+            border: 2px solid #000;
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #aircraft-hp-bar {
+            width: 100%;
+            height: 100%;
+            background-color: green;
+            transition: width 0.2s;
+            position: relative;
+            transform-origin: right; /* 오른쪽에서 왼쪽으로 줄어들도록 설정 */
+        }
+
+        #aircraft-hp-bar::before {
+            content: 'PLAYER';
+            color: white;
+            font-weight: bold;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+        }
+
+        .bullet {
+            position: absolute;
+            width: 5px;
+            height: 10px;
+            background-color: black;
+        }
+
+        .fragment {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: orange;
+            transform: translate(calc(var(--x)), calc(var(--y)));
+            transition: transform 1s;
+        }
+
+        .explode {
+            animation: explode 0.5s forwards;
+        }
+
+        @keyframes explode {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="hp-bar-container">
+        <div id="hp-bar"></div>
+    </div>
+
+    <div id="aircraft-hp-bar-container">
+        <div id="aircraft-hp-bar"></div>
+    </div>
+
+    <article id="box"></article>
+    <img id="aircraft2" src="images2.png" alt="Aircraft2"
+        style="position: absolute; top: 10%; left: 10%; transform: translate(-50%, -50%); width: 300px; height: 300px;">
+
+    <img id="aircraft" src="images.png" alt="Aircraft"
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100px; height: 70px;">
+    <script>
+        const box = document.querySelector("#box");
+        const aircraft = document.getElementById('aircraft');
+        const aircraft2 = document.getElementById('aircraft2');
+        const hpBar = document.getElementById('hp-bar');
+        const aircraftHpBar = document.getElementById('aircraft-hp-bar');
+
+        let aircraft2HP = 100; // Initialize Aircraft2 HP to 100
+        let aircraftHP = 100; // Initialize Aircraft HP to 100
+
+        let topPosition = 50;
+        let leftPosition = 50;
+        let movementInterval;
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            document.addEventListener('keydown', (event) => {
+                if (!movementInterval) {
+                    movementInterval = setInterval(() => {
+                        moveAircraft(event.key);
+                    }, 10); // Adjust the interval time to control movement speed
+                }
+            });
+
+            document.addEventListener('keyup', (event) => {
+                clearInterval(movementInterval);
+                movementInterval = null;
+
+                // Fire bullet from aircraft on spacebar release
+                if (event.key === ' ') {
+                    fireBullet(aircraft, 'up'); // Aircraft fires bullet upwards
+                }
+            });
+
+            // Aircraft2 fires 5 bullets every 2 seconds automatically
+            setInterval(() => {
+                fireBullet(aircraft2, 'down', 5); // Aircraft2 fires 5 bullets downwards
+            }, 2000);
+
+            function moveAircraft(key) {
+                const step = 0.5; // Movement step in percentage
+
+                switch (key) {
+                    case 'ArrowUp':
+                        topPosition -= step;
+                        break;
+                    case 'ArrowDown':
+                        topPosition += step;
+                        break;
+                    case 'ArrowLeft':
+                        leftPosition -= step;
+                        break;
+                    case 'ArrowRight':
+                        leftPosition += step;
+                        break;
+                }
+
+                aircraft.style.top = `${topPosition}%`;
+                aircraft.style.left = `${leftPosition}%`;
+                aircraft.style.transform = 'translate(-50%, -50%)';
+            }
+
+            function fireBullet(firer, direction, numBullets = 1) {
+                const bulletSpeed = 1;
+                const angleOffset = 10; // Degree offset between each bullet
+                const startAngle = -(numBullets - 1) * angleOffset / 2;
+
+                for (let i = 0; i < numBullets; i++) {
+                    const bullet = document.createElement('div');
+                    bullet.className = 'bullet';
+                    bullet.style.top = `${parseFloat(firer.style.top)}%`;
+                    bullet.style.left = `${parseFloat(firer.style.left)}%`;
+                    box.appendChild(bullet);
+
+                    const angle = startAngle + i * angleOffset;
+                    let bulletInterval = setInterval(() => {
+                        let bulletTop = parseFloat(bullet.style.top);
+                        let bulletLeft = parseFloat(bullet.style.left);
+                        
+                        bulletTop += bulletSpeed * Math.cos(angle * Math.PI / 180) * (direction === 'up' ? -1 : 1);
+                        bulletLeft += bulletSpeed * Math.sin(angle * Math.PI / 180);
+
+                        bullet.style.top = `${bulletTop}%`;
+                        bullet.style.left = `${bulletLeft}%`;
+
+                        if (bulletTop < 0 || bulletTop > 100 || bulletLeft < 0 || bulletLeft > 100) {
+                            clearInterval(bulletInterval);
+                            bullet.remove();
+                        }
+
+                        if (firer === aircraft && isCollision(bullet, aircraft2)) {
+                            clearInterval(bulletInterval);
+                            bullet.remove();
+                            aircraft2HP -= 1; // Reduce HP by 1 on each hit
+                            updateHPBar();
+
+                            if (aircraft2HP <= 0) {
+                                explode(aircraft2);
+                            }
+                        } else if (firer === aircraft2 && isCollision(bullet, aircraft)) {
+                            clearInterval(bulletInterval);
+                            bullet.remove();
+                            aircraftHP -= 20; // Reduce HP by 20 on each hit
+                            updateAircraftHPBar();
+
+                            if (aircraftHP <= 0) {
+                                explode(aircraft);
+                            }
+                        }
+                    }, 10);
+                }
+            }
+
+            function isCollision(bullet, target) {
+                const bulletRect = bullet.getBoundingClientRect();
+                const targetRect = target.getBoundingClientRect();
+
+                return !(
+                    bulletRect.top > targetRect.bottom ||
+                    bulletRect.bottom < targetRect.top ||
+                    bulletRect.left > targetRect.right ||
+                    bulletRect.right < targetRect.left
+                );
+            }
+
+            function explode(element) {
+                const rect = element.getBoundingClientRect();
+                const fragmentCount = 20;
+                for (let i = 0; i < fragmentCount; i++) {
+                    const fragment = document.createElement('div');
+                    fragment.className = 'fragment';
+                    fragment.style.left = `${rect.left + rect.width / 2}px`;
+                    fragment.style.top = `${rect.top + rect.height / 2}px`;
+                    fragment.style.setProperty('--x', `${Math.random() * 200 - 100}px`);
+                    fragment.style.setProperty('--y', `${Math.random() * 200 - 100}px`);
+                    document.body.appendChild(fragment);
+
+                    setTimeout(() => {
+                        fragment.remove();
+                    }, 1000);
+                }
+
+                element.classList.add('explode');
+                setTimeout(() => {
+                    element.remove();
+                }, 1000);
+            }
+
+            function updateHPBar() {
+                hpBar.style.width = `${aircraft2HP}%`;
+                if (aircraft2HP <= 30) {
+                    hpBar.style.backgroundColor = 'red';
+                } else {
+                    hpBar.style.backgroundColor = 'green'; // Restore color if above 30
+                }
+                if (aircraft2HP <= 0) {
+                    hpBar.style.backgroundColor = 'red'; // Ensure it's red if HP is 0 or below
+                }
+            }
+
+            function updateAircraftHPBar() {
+                aircraftHpBar.style.width = `${aircraftHP}%`;
+                if (aircraftHP <= 30) {
+                    aircraftHpBar.style.backgroundColor = 'red';
+                } else {
+                    aircraftHpBar.style.backgroundColor = 'green'; // Restore color if above 30
+                }
+                if (aircraftHP <= 0) {
+                    aircraftHpBar.style.backgroundColor = 'red'; // Ensure it's red if HP is 0 or below
+                }
+            }
+
+            let direction = 1;
+            setInterval(() => {
+                let left = parseFloat(aircraft2.style.left);
+                left += direction * 1;
+                if (left > 90 || left < 10) {
+                    direction *= -1;
+                }
+                aircraft2.style.left = `${left}%`;
+            }, 50);
+        });
+    </script>
+</body>
+
+</html>
